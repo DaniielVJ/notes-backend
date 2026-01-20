@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .clients import get_firestore_client
+
 # La aplicacion completa o API es una instancia u objeto de la clase FastAPI
 # que internamente implementa el estandar wsgi y asgi para ser ejecutada por los servidores web.
 
@@ -26,5 +28,17 @@ app.add_middleware(
 def hello_world():
     # Automaticamente fastapi serializa los datos de python a json para transmitirlo al cliente que se comunico al endpoint
     return {"message": "Hello World"}
+
+
+@app.get("/notes")
+async def get_notes():
+    client_firestore = get_firestore_client()
+    collection = client_firestore.collection('test-notes')
+    documents = collection.stream()
+    notes = [document.to_dict() for document in documents]
+    return {"notes": notes}
+
+
+
 
 
