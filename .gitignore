@@ -5,3 +5,5 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Credenciales o datos sensibles
+.env.local
