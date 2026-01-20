@@ -1,0 +1,7 @@
+# Ignoramos todos los archivos cache, ya que no queremos guardar los cambios o hacer un seguimiento
+# de bytecode, ya que los cache son los mismos archivos pero compilados a bytecode para ser ejecutados mas rapido.
+# no nos interesa hacer seguimiento de los bytes, si no si del codigo escrito en los archivos de los cuales se generan los caches.
+__pycache__/
+*.pyc
+*.pyo
+
