@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .clients import get_firestore_client
+from app.routes.notes.endpoints import router as notes_router
 
 # La aplicacion completa o API es una instancia u objeto de la clase FastAPI
 # que internamente implementa el estandar wsgi y asgi para ser ejecutada por los servidores web.
@@ -21,6 +21,12 @@ app.add_middleware(
 
 
 
+# Registramos todas las rutas o paths del router de notes a la app para que esta responda
+# a los requests que se hagan a los paths de el router de notes.
+app.include_router(notes_router)
+
+
+
 # Endpoint basico "Hello world"
 # El decorador provee a la funcion las caracteristica de poder funcionar como un endpoint
 # es decir responder a una solicitud http del metodo GET al path /hello-world
@@ -28,17 +34,6 @@ app.add_middleware(
 def hello_world():
     # Automaticamente fastapi serializa los datos de python a json para transmitirlo al cliente que se comunico al endpoint
     return {"message": "Hello World"}
-
-
-@app.get("/notes")
-async def get_notes():
-    client_firestore = get_firestore_client()
-    collection = client_firestore.collection('test-notes')
-    documents = collection.stream()
-    notes = [document.to_dict() for document in documents]
-    return {"notes": notes}
-
-
 
 
 
