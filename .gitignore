@@ -7,3 +7,8 @@ __pycache__/
 
 # Credenciales o datos sensibles
 .env.local
+
+
+# Carpeta con keys y  credenciales que no subiremos
+sensitive/
+
