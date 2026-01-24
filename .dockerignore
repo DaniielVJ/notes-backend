@@ -1,0 +1,9 @@
+# Que docker no agregue los cache en la imagen, ya que al ejecutarla generara sus propios cache.
+__pycache__/
+*.pyc
+*.pyo
+
+
+# Modificamos segun desarrollo local o en produccion
+.env.local
+.dockerignore
