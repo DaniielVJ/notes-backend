@@ -1,0 +1,86 @@
+# Instrucciones que ejecutara el trigger sobre el repositorio que tiene contectado
+# cuando se haga un push en la branch que le vinculamos(develop).
+options:
+  # Indica que solo almacene los logs en google cloud
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  # Paso 1: Autenticar con artifact registry
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
+    entrypoint: 'bash'
+    args: 
+      - '-c'
+      - |
+        gcloud auth configure-docker us-central1-docker.pkg.dev
+
+  # Paso 2: Construir la imagen de docker a partir del DockerFile usando cloudbuild.
+  - name: 'gcr.io/cloud-builders/docker' # El recurso que usara para hacer este paso el robot (sa)
+    args: 
+    # Los comandos que usara en el recurso
+      [
+        'build', 
+        '--no-cache',
+        '-t',
+        # Ruta repositorio registry donde se almacenara la imagen y como se llamara "docker build -t nombre-imagen ruta-dockerfile"
+        'us-central1-docker.pkg.dev/notes-app-484522/notes-backend-artifact-repo/notes-backend:$COMMIT_SHA',
+        # Con el punto indicamos que el dockerfile se encuentra en la raiz del repo sobre el cual trabajara el trigger
+        '.'
+      ]
+  # Paso 3: Subir la imagen al Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      [ 
+        # Hace un docker push pero de cloudbuild a el artifact registry para almacenarla, nosotros tmb con nuestro docker local
+        # podemos hacer un docker push para subir imagenes a un registry
+        'push',
+        'us-central1-docker.pkg.dev/notes-app-484522/notes-backend-artifact-repo/notes-backend:$COMMIT_SHA'
+      ]
+  # Paso 4: Desplegar la imagen en Cloud Run.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
+    args: 
+      [
+        # Creamos un servicio de cloud run a traves de gcloud, que ejecutara a partir de la imagen de nuestra app
+        # que creamos con cloudbuild y almacenamos en artifact registry
+        'gcloud',
+        'run',
+        'deploy',
+        'notes-backend-service',
+        '--image',
+        'us-central1-docker.pkg.dev/notes-app-484522/notes-backend-artifact-repo/notes-backend:$COMMIT_SHA',
+        '--platform',
+        'managed',
+        '--region',
+        'us-central1',
+        # Indicamos que cualquiera pueda ingresar o comunicarse a la app del cloud run, sin necesidad de estar autenticado en google cloud
+        '--ingress',
+        'all',
+        '--allow-unauthenticated',
+        '--cpu',
+        '1',
+        '--memory',
+        '1Gi',
+        # min en 0, significa que si nadie esta consultando a la url del servicio de cloud run no tenga maquinas ejecutando la app
+        '--min-instances',
+        '0',
+        # Google tiene un load balancer interno que si detecta que estan saturadas levanta las instancias hasta maximo 3 automaticamente
+        # y distribuye la carga del trafico entre ellas, si nadie la consume la api entonces el primero en conectarse tendra un retraso de 
+        # 5 segundos para que google encienda el cloud run.
+        '--max-instances',
+        '3',
+        '--service-account',
+        # Esta es la service account que ejecutara cloud run, no la que realiza el proceso automatizado de ci-cd con cloudbuild.
+        'notes-backend-sa',
+        '--update-secrets',
+        # Aqui le decimos que cargue esas variables de entorno dentro del contenedor o cloud run donde corre nuestra app para que las use
+        # ya que las necesita, y que el valor sera igual a las variables de entorno del secret manager que creamos en google cloud con nuestras
+        # credenciales.
+        # Ahora en el codigo de produccion debemos eliminar la linea que carga las variables de entorno desde un archivo, pq ahora google al momento
+        # de correr la imagen con cloud run, cargara las variables de entorno con esta linea, simplemente ahoa nuestro codigo debe obtenerlas
+        # .getenv().
+        'GCP_PROJECT_ID=GCP_PROJECT_ID:latest,FIRESTORE_DB_ID=FIRESTORE_DATABASE_ID:latest',
+      ]
+
+images: 
+  - 'us-central1-docker.pkg.dev/notes-app-484522/notes-backend-artifact-repo/notes-backend:$COMMIT_SHA'
+
+

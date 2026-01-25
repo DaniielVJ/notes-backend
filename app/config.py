@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Cargamos las variables de entorno del archivo del cual le pasamos el path o ruta.
 # os.path.join, permite crear una ruta compatible con el S.O donde se este ejecutando el programa.
-load_dotenv(os.path.join(BASE_DIR, '.env.local'))
+# load_dotenv(os.path.join(BASE_DIR, '.env.local')) # DESCOMENTAR EN LOCAL O DESARROLLO
 
 
 # clase para abstraer o representar las configuraciones
